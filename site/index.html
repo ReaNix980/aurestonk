@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Aurestonk — PSX market data, portfolio tracking and planning</title>
+<meta name="description" content="Aurestonk: KSE-100 market data, stock research, dividends, a private portfolio tracker and a long-term investment projection for Pakistan Stock Exchange investors.">
+<meta name="theme-color" content="#0b0f0d">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%23f6dc8a'/><stop offset='.5' stop-color='%23d4a72c'/><stop offset='1' stop-color='%238f6a14'/></linearGradient></defs><rect width='32' height='32' rx='8' fill='%230b0f0d'/><path d='M7 24L16 7l9 17' fill='none' stroke='url(%23g)' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'/><path d='M11 19h5l3-4' fill='none' stroke='url(%23g)' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/style.css">
+<script>try{var t=localStorage.getItem("aurestonk.theme");t=t?JSON.parse(t):(matchMedia("(prefers-color-scheme: light)").matches?"light":"dark");document.documentElement.dataset.theme=t}catch(e){document.documentElement.dataset.theme="dark"}</script>
+</head>
+<body>
+<div id="banner"></div>
+<header class="top">
+  <div class="top-in">
+    <a class="brand" href="#/" aria-label="Aurestonk home">
+      <svg class="brand-mark" viewBox="0 0 40 40" aria-hidden="true">
+        <defs>
+          <linearGradient id="goldBase" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#f7e3a1"/><stop offset=".45" stop-color="#d9ad3c"/><stop offset="1" stop-color="#8a6512"/>
+          </linearGradient>
+          <linearGradient id="glintBand" x1="0" y1="0" x2="1" y2="0" gradientUnits="objectBoundingBox">
+            <stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".5" stop-color="#fffbe8" stop-opacity=".95"/><stop offset="1" stop-color="#fff" stop-opacity="0"/>
+          </linearGradient>
+          <linearGradient id="glintSoft" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0" stop-color="#ffe9a8" stop-opacity="0"/><stop offset=".5" stop-color="#ffe9a8" stop-opacity=".45"/><stop offset="1" stop-color="#ffe9a8" stop-opacity="0"/>
+          </linearGradient>
+          <mask id="markMask" maskUnits="userSpaceOnUse" x="0" y="0" width="40" height="40">
+            <g fill="none" stroke="#fff" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2.5" y="2.5" width="35" height="35" rx="10" stroke-width="2.2"/>
+              <path d="M10 30L20 9l10 21" stroke-width="3.6"/>
+              <path d="M14.2 23.5h6.3l3.6-4.6" stroke-width="3"/>
+            </g>
+          </mask>
+        </defs>
+        <g fill="none" stroke="url(#goldBase)" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2.5" y="2.5" width="35" height="35" rx="10" stroke-width="2.2" opacity=".55"/>
+          <path d="M10 30L20 9l10 21" stroke-width="3.6"/>
+          <path d="M14.2 23.5h6.3l3.6-4.6" stroke-width="3"/>
+        </g>
+        <g mask="url(#markMask)" class="glint-layer">
+          <rect x="-40" y="-20" width="22" height="80" fill="url(#glintSoft)" transform="rotate(25 20 20)">
+            <animate attributeName="x" values="-60;70" dur="5.2s" repeatCount="indefinite"/>
+          </rect>
+          <rect x="-40" y="-20" width="9" height="80" fill="url(#glintBand)" transform="rotate(25 20 20)">
+            <animate attributeName="x" values="-50;80" dur="3.4s" repeatCount="indefinite"/>
+          </rect>
+        </g>
+      </svg>
+      <span class="wordmark">Aurestonk</span>
+    </a>
+    <nav class="nav" id="nav" aria-label="Main">
+      <a href="#/" data-r="home">Overview</a>
+      <a href="#/market" data-r="market">Market</a>
+      <a href="#/stocks" data-r="stocks">Stocks</a>
+      <a href="#/dividends" data-r="dividends">Dividends</a>
+      <a href="#/portfolio" data-r="portfolio">Portfolio</a>
+      <a href="#/planner" data-r="planner">Projection</a>
+      <a href="#/calculators" data-r="calculators">Tools</a>
+      <a href="#/economy" data-r="economy">Economy</a>
+    </nav>
+    <div class="top-actions">
+      <button class="icon-btn" id="searchBtn" title="Search (Ctrl+K)"><span class="search-label">Search</span><span class="kbd search-label">Ctrl K</span></button>
+      <label class="cur-wrap" title="Display currency"><select id="curSel" aria-label="Display currency"></select></label>
+      <button class="icon-btn" id="themeBtn" title="Light / dark"></button>
+    </div>
+  </div>
+  <div class="ticker" id="ticker" aria-hidden="true"></div>
+</header>
+<main id="app" tabindex="-1"></main>
+<footer class="site" id="footer"></footer>
+
+<script src="/assets/js/core.js"></script>
+<script src="/assets/js/icons.js"></script>
+<script src="/assets/js/charts.js"></script>
+<script src="/assets/js/finance.js"></script>
+<script src="/assets/js/ui.js"></script>
+<script src="/assets/js/pages/home.js"></script>
+<script src="/assets/js/pages/market.js"></script>
+<script src="/assets/js/pages/stocks.js"></script>
+<script src="/assets/js/pages/stock.js"></script>
+<script src="/assets/js/pages/dividends.js"></script>
+<script src="/assets/js/pages/portfolio.js"></script>
+<script src="/assets/js/pages/planner.js"></script>
+<script src="/assets/js/pages/calculators.js"></script>
+<script src="/assets/js/pages/economy.js"></script>
+<script src="/assets/js/pages/about.js"></script>
+<script src="/assets/js/app.js"></script>
+</body>
+</html>

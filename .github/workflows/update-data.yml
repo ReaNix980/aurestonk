@@ -1,0 +1,54 @@
+name: Update PSX data
+
+on:
+  schedule:
+    # 11:15 UTC = 16:15 Pakistan time, Monday-Friday (after PSX closes)
+    - cron: "15 11 * * 1-5"
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "normal / full (refresh fundamentals & payouts) / backfill (re-download all history) / diagnose (check data sources, changes nothing)"
+        default: "normal"
+        required: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-data
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install
+        run: pip install -r scripts/requirements.txt
+
+      - name: Collect
+        run: |
+          MODE="${{ github.event.inputs.mode }}"
+          if [ "$MODE" = "diagnose" ]; then python scripts/collect.py --diagnose LUCK; exit 0
+          elif [ "$MODE" = "full" ]; then python scripts/collect.py --full
+          elif [ "$MODE" = "backfill" ]; then python scripts/collect.py --backfill --full
+          else python scripts/collect.py; fi
+
+      - name: Save data
+        if: github.event.inputs.mode != 'diagnose'
+        run: |
+          git config user.name "aurestonk-bot"
+          git config user.email "aurestonk-bot@users.noreply.github.com"
+          git add site/data
+          if git diff --cached --quiet; then
+            echo "No changes (market holiday?)"
+          else
+            git commit -m "Data update $(date -u +%Y-%m-%d)"
+            git push
+          fi

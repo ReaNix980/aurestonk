@@ -1,0 +1,12 @@
+{
+  "_note": "Figures that have no free API. Update by hand when they change (takes 1 minute).",
+  "policyRate": { "value": 12.0, "since": "2026-10-27", "source": "State Bank of Pakistan" },
+  "cpi": { "value": 9.61, "month": "2026-10", "source": "Pakistan Bureau of Statistics" },
+  "cpiMonthly": [
+    ["2026-07", 9.2],
+    ["2026-08", 11.15],
+    ["2026-09", 10.26],
+    ["2026-10", 9.61]
+  ],
+  "inflationTarget": "5-7%"
+}
