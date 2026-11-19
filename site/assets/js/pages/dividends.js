@@ -28,7 +28,7 @@
     upBox.append(UI.table([
       { key: "s", label: "Company", render: (p) => UI.symCell({ s: p.s, n: p.n }) },
       { key: "type", label: "Type", render: (p) => h("span", {}, p.type, p.period ? h("span", { class: "muted small" }, " · " + p.period) : null) },
-      { key: "amount", label: "Per share", num: true, render: (p) => (p.amount ? "Rs " + p.amount.toFixed(2) : p.pct ? p.pct + "%" : "—") },
+      { key: "amount", label: "Per share", num: true, render: (p) => (p.amount ? fmt.pkr(p.amount) : p.pct ? p.pct + "%" : "—") },
       { key: "yield", label: "Yield", num: true, sortVal: (p) => (p.amount && bySym[p.s] ? p.amount / bySym[p.s].price : null),
         render: (p) => (p.amount && bySym[p.s] ? (p.amount / bySym[p.s].price * 100).toFixed(2) + "%" : "—"), title: "This payout ÷ current price" },
       { key: "bookClosureFrom", label: "Book closure", render: (p) => p.bookClosureFrom ? `${fmt.date(p.bookClosureFrom, false)} – ${fmt.date(p.bookClosureTo || p.bookClosureFrom)}` : "—", ascFirst: true },
@@ -47,8 +47,8 @@
       { key: "rank", label: "#", sortable: false, render: (s) => top.indexOf(s) + 1 },
       { key: "s", label: "Stock", render: UI.symCell },
       { key: "divYield", label: "Yield", num: true, render: (s) => h("b", {}, s.divYield.toFixed(2) + "%") },
-      { key: "dps12m", label: "Paid (12m)", num: true, render: (s) => "Rs " + s.dps12m.toFixed(2) },
-      { key: "price", label: "Price", num: true, render: (s) => fmt.num(s.price, 2) },
+      { key: "dps12m", label: "Paid (12m)", num: true, render: (s) => fmt.pkr(s.dps12m) },
+      { key: "price", label: "Price", num: true, render: (s) => fmt.px(s.price) },
     ], top, { compact: true, sort: "divYield", onRow: (s) => (location.hash = "#/stock/" + s.s) }).el);
 
     const weeks = {};
@@ -69,7 +69,7 @@
     if (recent.length) app.append(h("div", { class: "card", style: { marginTop: "16px" } }, h("h2", {}, "Recent payouts"),
       UI.table([
         { key: "s", label: "Company", render: (p) => UI.symCell({ s: p.s, n: p.n }) },
-        { key: "amount", label: "Per share", num: true, render: (p) => (p.amount ? "Rs " + p.amount.toFixed(2) : "—") },
+        { key: "amount", label: "Per share", num: true, render: (p) => (p.amount ? fmt.pkr(p.amount) : "—") },
         { key: "pct", label: "% of face value", num: true, render: (p) => (p.pct ? p.pct + "%" : "—") },
         { key: "exDate", label: "Date", render: (p) => fmt.date(p.exDate || p.bookClosureFrom) },
       ], recent, { compact: true, sort: "exDate" }).el));

@@ -30,11 +30,34 @@ ROOT = Path(__file__).resolve().parent.parent
 DATA = ROOT / "site" / "data"
 BASE = "https://dps.psx.com.pk"
 PKT = timezone(timedelta(hours=5))
-UA = {"User-Agent": "Mozilla/5.0 (Aurestonk data collector; personal non-commercial project)",
-      "Accept": "application/json, text/html;q=0.9", "X-Requested-With": "XMLHttpRequest"}
+UA = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36",
+      "Accept": "text/html,application/json,application/xhtml+xml;q=0.9,*/*;q=0.8", "Accept-Language": "en-US,en;q=0.7",
+      "Referer": "https://dps.psx.com.pk/", "X-Requested-With": "XMLHttpRequest"}
 WARN = []
 S = requests.Session()
 S.headers.update(UA)
+
+# PSX's data portal now expects a short-lived token (published in a script tag on its home page)
+# to be sent with each data request in the "X-Req-Id" header. It rotates every few minutes.
+TOKEN = {"value": None, "at": 0.0}
+TOKEN_RE = re.compile(r"window\.__ps\s*=\s*(\{.*?\})\s*[;<]", re.S)
+
+
+def psx_token(force=False):
+    # reuse the token for ~3 minutes; even when forced, don't refetch more than once every 20 s
+    age = time.time() - TOKEN["at"]
+    if TOKEN["value"] and (age < 20 or (not force and age < 200)):
+        return TOKEN["value"]
+    try:
+        r = S.get(BASE + "/", timeout=30)
+        m = TOKEN_RE.search(r.text or "")
+        val = json.loads(m.group(1)).get("_k") if m else None
+    except Exception:
+        val = None
+    TOKEN.update(value=val, at=time.time())
+    if not val:
+        warn("Couldn't read the PSX request token from the home page")
+    return val
 
 
 def warn(msg):
@@ -42,29 +65,38 @@ def warn(msg):
     print("  ! " + msg)
 
 
-def get(url, tries=3, **kw):
-    for k in range(tries):
+def _request(method, url, tries=3, **kw):
+    psx = url.startswith(BASE)
+    refreshed = False
+    k = 0
+    while k < tries:
+        headers = dict(kw.pop("headers", {}) or {})
+        if psx:
+            tok = psx_token()
+            if tok:
+                headers["X-Req-Id"] = tok
         try:
-            r = S.get(url, timeout=30, **kw)
+            r = S.request(method, url, timeout=45, headers=headers, **kw)
             if r.status_code == 200:
                 return r
-            warn(f"{url} -> HTTP {r.status_code}")
+            if r.status_code == 403 and psx and not refreshed:
+                psx_token(force=True)      # token expired: get a fresh one and retry once
+                refreshed = True
+                continue
+            warn(f"{method} {url} -> HTTP {r.status_code}")
         except requests.RequestException as e:
-            warn(f"{url} -> {type(e).__name__}")
+            warn(f"{method} {url} -> {type(e).__name__}")
         time.sleep(2 + 3 * k)
+        k += 1
     return None
+
+
+def get(url, tries=3, **kw):
+    return _request("GET", url, tries, **kw)
 
 
 def post(url, data, tries=3):
-    for k in range(tries):
-        try:
-            r = S.post(url, data=data, timeout=30)
-            if r.status_code == 200:
-                return r
-        except requests.RequestException:
-            pass
-        time.sleep(2 + 3 * k)
-    return None
+    return _request("POST", url, tries, data=data)
 
 
 def num(x):
@@ -238,6 +270,68 @@ def fetch_eod(sym):
     return out
 
 
+def fetch_history(sym):
+    """Full daily open/high/low/close/volume history for one symbol (POST /historical)."""
+    r = post(f"{BASE}/historical", {"symbol": sym}, tries=2)
+    if not r:
+        return []
+    soup = BeautifulSoup(r.text, "html.parser")
+    out = []
+    for tr in soup.select("table tbody tr"):
+        tds = tr.find_all("td")
+        if len(tds) < 6:
+            continue
+        ts = tds[0].get("data-order")
+        d = None
+        if ts and str(ts).strip().lstrip("-").isdigit():
+            d = datetime.fromtimestamp(int(ts), PKT).date().isoformat()
+        if not d:
+            d = to_iso(tds[0].get_text(" ", strip=True))
+        o, hi, lo, c = (num(td.get_text(strip=True)) for td in tds[1:5])
+        v = num(tds[5].get_text(strip=True)) or 0
+        if not d or c is None:
+            continue
+        o = o or c
+        hi = max(x for x in (hi, o, c) if x is not None)
+        lo = min(x for x in (lo, o, c) if x is not None)
+        out.append([d, o, hi, lo, c, int(v)])
+    out.sort(key=lambda x: x[0])
+    return out
+
+
+def fetch_screener():
+    """P/E, dividend yield, market cap, free float and sector for every listed company in one request."""
+    r = get(f"{BASE}/screener", tries=2)
+    if not r:
+        return {}
+    soup = BeautifulSoup(r.text, "html.parser")
+    t = soup.find("table")
+    if not t:
+        return {}
+    heads = [th.get_text(" ", strip=True).lower() for th in t.find_all("th")]
+
+    def idx(*names):
+        return next((i for i, h_ in enumerate(heads) if any(h_.startswith(n) for n in names)), None)
+    I = {"sym": idx("symbol"), "sec": idx("sector"), "mcap": idx("market cap"), "pe": idx("pe ratio", "p/e"),
+         "dy": idx("dividend yield"), "ff": idx("free float"), "price": idx("price")}
+    out = {}
+    for tr in t.select("tbody tr"):
+        tds = tr.find_all("td")
+        if I["sym"] is None or len(tds) <= I["sym"]:
+            continue
+        sym = tds[I["sym"]].get_text(strip=True).upper()
+
+        def val(key):
+            i = I[key]
+            if i is None or i >= len(tds):
+                return None
+            return num(tds[i].get("data-order") or tds[i].get_text(strip=True))
+        out[sym] = {"mcap": val("mcap"), "pe": val("pe"), "divYield": val("dy"), "freeFloat": val("ff"),
+                    "sec": tds[I["sec"]].get_text(strip=True) if I["sec"] is not None and I["sec"] < len(tds) else ""}
+    print(f"  screener rows: {len(out)}")
+    return out
+
+
 def fetch_company(sym):
     """Fundamentals + payout history from the company page."""
     r = get(f"{BASE}/company/{sym}", tries=2)
@@ -372,7 +466,7 @@ def payouts_to_divs(payouts, face):
     return sorted({d[0] + str(d[1]): d for d in out}.values())
 
 
-def stock_stats(sym, meta, hist, comp):
+def stock_stats(sym, meta, hist, comp, screen=None):
     d = hist["d"]
     if len(d) < 2:
         return None
@@ -388,17 +482,20 @@ def stock_stats(sym, meta, hist, comp):
     year = [r for r in d if r[0] > cutoff] or d[-1:]
     dps12 = round(sum(a for dd, a, *_ in hist.get("div", []) if dd > cutoff and dd <= last[0]), 2)
     comp = comp or {}
+    screen = screen or {}
     eps = comp.get("eps")
     shares = comp.get("shares")
-    mcap = (comp.get("mcapK") or 0) * 1000 or (price * shares if shares else None)
+    mcap = screen.get("mcap") or (comp.get("mcapK") or 0) * 1000 or (price * shares if shares else None)
+    if not eps and screen.get("pe"):
+        eps = round(price / screen["pe"], 2) if screen["pe"] > 0 else None
     return {
         "s": sym, "n": meta.get("n", sym), "sec": meta.get("sec", ""), "kse100": meta.get("kse100", False),
         "kmi30": meta.get("kmi30", False), "weight": meta.get("weight"),
         "price": price, "chg": round(price - prev[4], 2), "chgPct": round((price / prev[4] - 1) * 100, 2) if prev[4] else 0,
         "open": last[1], "high": last[2], "low": last[3], "vol": last[5],
         "mcap": round(mcap) if mcap else None, "shares": shares, "eps": eps,
-        "pe": comp.get("pe") or (round(price / eps, 2) if eps and eps > 0 else None),
-        "dps12m": dps12, "divYield": round(dps12 / price * 100, 2) if dps12 and price else 0,
+        "pe": round(screen.get("pe") or comp.get("pe") or (price / eps if eps and eps > 0 else 0), 2) or None,
+        "dps12m": dps12, "divYield": round(dps12 / price * 100, 2) if dps12 and price else round(screen.get("divYield") or 0, 2),
         "high52": max(r[2] for r in year), "low52": min(r[3] for r in year),
         "r1m": ret(30), "r6m": ret(182), "r1y": ret(365), "r3y": ret(1095), "r5y": ret(1826),
         "face": comp.get("face") or 10, "freeFloat": comp.get("freeFloat"),
@@ -435,6 +532,7 @@ def main():
         print("No KSE-100 members available — stopping without changing any data.")
         return finish(started, ok=False)
     watch = fetch_market_watch()
+    screen = fetch_screener()
     syms = sorted(kse)
     if a.limit:
         syms = syms[: a.limit]
@@ -450,34 +548,32 @@ def main():
         hist = load(hpath, {"s": sym, "d": [], "div": []})
         if hist.get("sample") or was_sample:
             hist = {"s": sym, "d": [], "div": []}
-        if a.backfill or len(hist["d"]) < 30:
-            eod = fetch_eod(sym)
-            if len(eod) > len(hist["d"]):
-                old = {r[0]: r for r in hist["d"]}
-                for r in eod:
-                    old.setdefault(r[0], r)
-                hist["d"] = sorted(old.values(), key=lambda r: r[0])
-            time.sleep(0.3)
+        # daily candles: PSX returns the full history (including today) in one request
+        full = fetch_history(sym)
+        if not full:
+            full = fetch_eod(sym)  # older endpoint as a fallback (close + volume only)
+        if full:
+            merged = {r[0]: r for r in hist["d"]}
+            merged.update({r[0]: r for r in full})
+            hist["d"] = sorted(merged.values(), key=lambda r: r[0])
+            today_market = max(today_market or "", hist["d"][-1][0])
+        else:
+            warn(f"{sym}: no daily history returned")
+        time.sleep(0.4)
+        # hourly candles: built from today's trades (optional — daily data doesn't depend on it)
         ticks = fetch_ticks(sym)
-        day = daily_from_ticks(ticks)
-        w = watch.get(sym)
-        if day and w and w.get("o") and w.get("h"):
-            # prefer the exchange's official open/high/low/volume when available
-            day = [day[0], w["o"], max(w["h"], day[2]), min(w["l"] or day[3], day[3]), w["c"], int(w["v"] or day[5])]
-        if day:
-            today_market = max(today_market or day[0], day[0])
-            hist["d"] = merge_daily(hist["d"], day)
+        if ticks:
+            day0 = ticks[-1][0].date().isoformat()
             hour = load(ipath, {"s": sym, "d": []})
             if hour.get("sample") or was_sample:
                 hour = {"s": sym, "d": []}
-            new = hourly_candles(ticks)
-            keep = [r for r in hour["d"] if not r[0].startswith(day[0])]
-            hour["d"] = sorted(keep + new, key=lambda r: r[0])
+            new = hourly_candles([t for t in ticks if t[0].date().isoformat() == day0])
             if new:
+                keep = [r for r in hour["d"] if not r[0].startswith(day0)]
+                hour["d"] = sorted(keep + new, key=lambda r: r[0])
                 save(ipath, hour)
-                hourly_since = hourly_since or day[0]
-        elif not ticks:
-            warn(f"{sym}: no trades returned for the latest session")
+                hourly_since = hourly_since or day0
+        w = watch.get(sym)
         # fundamentals weekly (or on --full)
         c = comp_cache.get(sym)
         stale = not c or c.get("_fetched", "") < (date.today() - timedelta(days=7)).isoformat()
@@ -505,7 +601,10 @@ def main():
             meta = {"n": symbols.get(sym, {}).get("n") or (c or {}).get("name") or sym,
                     "sec": symbols.get(sym, {}).get("sec") or (w or {}).get("sec") or "",
                     "kse100": True, "kmi30": sym in kmi, "weight": kse[sym].get("weight")}
-            st = stock_stats(sym, meta, hist, c)
+            sc = screen.get(sym, {})
+            if sc and not meta["sec"]:
+                meta["sec"] = sc.get("sec", "")
+            st = stock_stats(sym, meta, hist, c, sc)
             if st:
                 stocks.append(st)
         time.sleep(0.25)
@@ -514,7 +613,12 @@ def main():
     ihist = load(DATA / "history" / "KSE100.json", {"s": "KSE100", "d": [], "div": []})
     if ihist.get("sample") or was_sample:
         ihist = {"s": "KSE100", "d": [], "div": []}
-    if a.backfill or len(ihist["d"]) < 30:
+    ifull = fetch_history("KSE100")
+    if ifull:
+        merged = {r[0]: r for r in ihist["d"]}
+        merged.update({r[0]: r for r in ifull})
+        ihist["d"] = sorted(merged.values(), key=lambda r: r[0])
+    elif a.backfill or len(ihist["d"]) < 30:
         eod = fetch_eod("KSE100")
         if eod:
             ihist["d"] = eod

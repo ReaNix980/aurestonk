@@ -51,10 +51,10 @@
           kvc("Dividend yield", s.divYield ? s.divYield.toFixed(2) + "%" : "—", "Last 12 months"),
           kvc("Dividends (12m)", s.dps12m ? fmt.pkr(s.dps12m) : "—", "Per share"),
           kvc("Volume", fmt.compact(s.vol, 1), "Shares traded last session"),
-          kvc("Day range", `${fmt.num(s.low, 2)} – ${fmt.num(s.high, 2)}`),
+          kvc("Day range", `${fmt.px(s.low)} – ${fmt.px(s.high)}`),
           kvc("Shares", s.shares ? fmt.compact(s.shares, 2) : "—")),
         h("div", { style: { marginTop: "14px" } },
-          h("div", { class: "row small", style: { justifyContent: "space-between" } }, h("span", {}, "52-week low ", h("b", {}, fmt.num(s.low52, 2))), h("span", {}, "high ", h("b", {}, fmt.num(s.high52, 2)))),
+          h("div", { class: "row small", style: { justifyContent: "space-between" } }, h("span", {}, "52-week low ", h("b", {}, fmt.px(s.low52))), h("span", {}, "high ", h("b", {}, fmt.px(s.high52)))),
           h("div", { class: "progress", style: { marginTop: "6px", position: "relative" } }, h("i", { style: { width: Math.max(2, Math.min(100, pos52)) + "%" } })),
           h("div", { class: "help" }, `Price is ${pos52.toFixed(0)}% of the way from its 1-year low to its 1-year high.`))),
       h("div", { class: "card" }, h("h2", {}, "Performance"),
@@ -80,10 +80,10 @@
       divBox.append(h("div", { class: "grid g2" }, h("div", {}, h("h3", {}, "Per share, by year"), chartEl),
         h("div", {}, h("h3", {}, "Recent payouts"), UI.table([
           { key: "0", label: "Date", render: (r) => fmt.date(r[0]) },
-          { key: "1", label: "Per share", num: true, render: (r) => "Rs " + r[1].toFixed(2) },
+          { key: "1", label: "Per share", num: true, render: (r) => fmt.pkr(r[1]) },
           { key: "y", label: "Yield then", num: true, render: (r) => { const p = hist.d.find((x) => x[0] >= r[0]); return p ? (r[1] / p[4] * 100).toFixed(2) + "%" : "—"; }, sortable: false },
         ], divs.slice(0, 12), { compact: true }).el)));
-      Charts.bars(chartEl, { labels: years, series: [{ name: "Dividend per share", values: years.map((y) => +byYear[y].toFixed(2)), color: "#c9a227" }], yFmt: (v) => "Rs " + v, height: 220 });
+      Charts.bars(chartEl, { labels: years, series: [{ name: "Dividend per share", values: years.map((y) => +fmt.conv(byYear[y]).toFixed(4)), color: "#c9a227" }], yFmt: (v) => fmt.sym() + " " + v, height: 220 });
     }
 
     // what if
@@ -94,7 +94,7 @@
     if (peers.length) app.append(h("div", { class: "card", style: { marginTop: "16px" } }, h("h2", {}, `Other ${s.sec} companies`),
       UI.table([
         { key: "s", label: "Stock", render: UI.symCell },
-        { key: "price", label: "Price", num: true, render: (x) => fmt.num(x.price, 2) },
+        { key: "price", label: "Price", num: true, render: (x) => fmt.px(x.price) },
         { key: "chgPct", label: "Today", num: true, render: (x) => UI.chgCell(x.chgPct) },
         { key: "pe", label: "P/E", num: true, render: (x) => (x.pe > 0 ? x.pe.toFixed(1) : "—") },
         { key: "divYield", label: "Div. yield", num: true, render: (x) => (x.divYield ? x.divYield.toFixed(2) + "%" : "—") },

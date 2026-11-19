@@ -188,8 +188,8 @@
         res.append(h("div", { class: "card", style: { marginTop: "16px" } }, h("h2", {}, `Price change over ${yrs} year${yrs > 1 ? "s" : ""}`), chartEl));
         Charts.line(chartEl, { height: 300, series, yFmt: (v) => v.toFixed(0) + "%", zero: true });
         const rows = syms.map((s) => stocks.find((x) => x.s === s) || (s === "KSE100" ? { s, n: "KSE-100 Index" } : null)).filter(Boolean);
-        const metrics = [["Price", (x) => fmt.num(x.price, 2)], ["Today", (x) => fmt.pct(x.chgPct)], ["Sector", (x) => x.sec || "—"], ["Market cap", (x) => fmt.rsc(x.mcap)],
-          ["P/E", (x) => (x.pe > 0 ? x.pe.toFixed(1) : "—")], ["EPS", (x) => fmt.num(x.eps, 2)], ["Dividend yield", (x) => (x.divYield ? x.divYield.toFixed(2) + "%" : "—")],
+        const metrics = [["Price", (x) => fmt.px(x.price)], ["Today", (x) => fmt.pct(x.chgPct)], ["Sector", (x) => x.sec || "—"], ["Market cap", (x) => fmt.rsc(x.mcap)],
+          ["P/E", (x) => (x.pe > 0 ? x.pe.toFixed(1) : "—")], ["EPS", (x) => fmt.px(x.eps)], ["Dividend yield", (x) => (x.divYield ? x.divYield.toFixed(2) + "%" : "—")],
           ["1 year", (x) => fmt.pct(x.r1y, 1)], ["3 years", (x) => fmt.pct(x.r3y, 1)], ["5 years", (x) => fmt.pct(x.r5y, 1)], ["Shariah (KMI-30)", (x) => (x.kmi30 ? "Yes" : x.s === "KSE100" ? "—" : "No")]];
         res.append(h("div", { class: "card" }, h("h2", {}, "Side by side"), h("div", { class: "tbl-wrap" }, h("table", { class: "tbl compact" },
           h("thead", {}, h("tr", {}, h("th", {}, ""), rows.map((x) => h("th", { class: "n" }, x.s)))),

@@ -5,11 +5,18 @@
 
   /* ---------------- form fields (return {el, get, set}) */
   function numField(label, val, o = {}) {
-    const input = h("input", { type: "number", value: val ?? "", step: o.step || "any", min: o.min, max: o.max, inputmode: "decimal", id: o.id });
-    const wrap = h("div", { class: "with-unit" + (o.pre ? " has-pre" : "") }, o.pre ? h("span", { class: "pre" }, o.pre) : null, input, o.unit ? h("span", { class: "unit" }, o.unit) : null);
+    // Money fields (pre: "Rs") show and accept the chosen display currency, but get()/set() always use PKR.
+    const money = o.pre === "Rs";
+    const k = money ? fmt.conv(1) : 1;             // display units per 1 PKR
+    const toShow = (v) => (v === "" || v === null || v === undefined ? "" : money && k !== 1 ? +(Number(v) * k).toFixed(Number(v) * k < 10 ? 4 : 2) : v);
+    const input = h("input", { type: "number", value: toShow(val), step: o.step || "any", min: o.min, max: o.max, inputmode: "decimal", id: o.id });
+    const pre = money ? fmt.sym() : o.pre;
+    const wrap = h("div", { class: "with-unit" + (pre ? " has-pre" : "") + (pre && pre.length > 2 ? " wide-pre" : "") }, pre ? h("span", { class: "pre" }, pre) : null, input, o.unit ? h("span", { class: "unit" }, o.unit) : null);
     const el = h("div", { class: "field" }, label ? h("label", {}, label) : null, wrap, o.help ? h("div", { class: "help" }, o.help) : null);
     if (o.onInput) input.addEventListener("input", o.onInput);
-    return { el, input, get: () => (input.value === "" ? (o.def ?? 0) : Number(input.value)), set: (v) => (input.value = v) };
+    return { el, input, money,
+      get: () => (input.value === "" ? (o.def ?? 0) : Number(input.value) / k),
+      set: (v) => (input.value = toShow(v)) };
   }
   function selField(label, choices, val, o = {}) {
     const sel = h("select", {}, choices.map(([v, l]) => h("option", { value: v, selected: String(v) === String(val) }, l)));
@@ -192,7 +199,10 @@
       }
       box.innerHTML = "";
       if (o.onRange && rows.length > 1) o.onRange(rows, range);
-      Charts.candles(box, { rows, mode, hourly: isHourly, height: o.height || 360, yFmt: (v) => fmt.num(v, v < 100 ? 2 : 0) });
+      const k = sym === "KSE100" ? 1 : fmt.conv(1);
+      const shown = k === 1 ? rows : rows.map((r) => [r[0], r[1] * k, r[2] * k, r[3] * k, r[4] * k, r[5]]);
+      Charts.candles(box, { rows: shown, mode, hourly: isHourly, height: o.height || 360,
+        yFmt: (v) => (sym === "KSE100" ? fmt.num(v, 0) : fmt.num(v, Math.abs(v) < 1 ? 4 : Math.abs(v) < 100 ? 2 : 0)) });
     }
   }
 

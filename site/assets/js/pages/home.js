@@ -65,7 +65,7 @@
         const sorted = { gainers: stocks.slice().sort((a, b) => b.chgPct - a.chgPct), losers: stocks.slice().sort((a, b) => a.chgPct - b.chgPct), active: stocks.slice().sort((a, b) => b.vol - a.vol) }[tab].slice(0, 8);
         body.append(UI.table([
           { key: "s", label: "Symbol", render: UI.symCell, sortable: false },
-          { key: "price", label: "Last", num: true, render: (s) => fmt.num(s.price, 2), sortable: false },
+          { key: "price", label: "Last", num: true, render: (s) => fmt.px(s.price), sortable: false },
           { key: "chgPct", label: "Change", num: true, render: (s) => UI.chgCell(s.chgPct), sortable: false },
           { key: "vol", label: "Volume", num: true, render: (s) => fmt.compact(s.vol, 2), sortable: false },
         ], sorted, { compact: true, onRow: (s) => (location.hash = "#/stock/" + s.s) }).el);

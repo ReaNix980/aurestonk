@@ -335,3 +335,4 @@ footer.site { border-top: 1px solid var(--line); margin-top: 40px; }
 @media print { .top, footer.site, .sample-banner, .no-print { display: none !important; } body { background: #fff; color: #000; } }
 .split { grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); }
 @media (max-width: 900px) { .split { grid-template-columns: 1fr; } }
+.with-unit.wide-pre input { padding-left: 46px !important; }

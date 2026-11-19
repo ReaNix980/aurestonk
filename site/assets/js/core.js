@@ -62,7 +62,10 @@
     return money(sym(), num(v, dd));
   };
   const rsc = (n) => (n === null || n === undefined || !isFinite(n) ? "—" : money(sym(), compact(conv(n))));
-  const pkr = (n, d = 2) => (n === null || n === undefined || !isFinite(n) ? "—" : "Rs " + num(n, d));
+  /* share prices: converted to the display currency, more decimals for small values */
+  const pxDec = (v) => (settings.currency === "PKR" ? 2 : Math.abs(v) < 1 ? 4 : Math.abs(v) < 10 ? 3 : 2);
+  const px = (n, d) => { if (n === null || n === undefined || !isFinite(n)) return "—"; const v = conv(n); return num(v, d ?? pxDec(v)); };
+  const pkr = (n, d) => (n === null || n === undefined || !isFinite(n) ? "—" : money(sym(), px(n, d)));
   const pct = (n, d = 2, sign = true) => (n === null || n === undefined || !isFinite(n) ? "—" : (sign && n > 0 ? "+" : "") + n.toFixed(d) + "%");
   const cls = (n) => (n > 0 ? "up" : n < 0 ? "down" : "flat");
   const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -145,6 +148,6 @@
   }
 
   window.Pages = window.Pages || {};
-  window.A = { $, $$, h, esc, store, settings, fmt: { num, compact, rs, rsc, pkr, conv, sym, pct, cls, date, MONTHS }, CURRENCIES, todayISO,
+  window.A = { $, $$, h, esc, store, settings, fmt: { num, compact, rs, rsc, pkr, px, conv, sym, pct, cls, date, MONTHS }, CURRENCIES, todayISO,
                data, toast, debounce, uid, download, csv, parseCSV };
 })();

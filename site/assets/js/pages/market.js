@@ -29,7 +29,7 @@
     const list = stocks.stocks;
     const tblFor = (rows, extra) => UI.table([
       { key: "s", label: "Stock", render: UI.symCell, sortable: false },
-      { key: "price", label: "Price", num: true, render: (s) => fmt.num(s.price, 2) },
+      { key: "price", label: "Price", num: true, render: (s) => fmt.px(s.price) },
       extra === "vol" ? { key: "vol", label: "Volume", num: true, render: (s) => fmt.compact(s.vol, 1) } : null,
       { key: "chgPct", label: "Change", num: true, render: (s) => UI.chgCell(s.chgPct) },
     ].filter(Boolean), rows, { compact: true, sort: extra === "vol" ? "vol" : "chgPct", asc: extra === "down" }).el;

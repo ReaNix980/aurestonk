@@ -161,7 +161,7 @@
       const [{ stocks }, m] = await Promise.all([data.stocks(), data.market()]);
       const ix = m.index;
       const items = [[`KSE-100`, fmt.num(ix.value, 2), ix.chgPct, "#/market"],
-        ...stocks.slice().sort((a, b) => (b.mcap || 0) - (a.mcap || 0)).slice(0, 40).map((s) => [s.s, fmt.num(s.price, 2), s.chgPct, "#/stock/" + s.s])];
+        ...stocks.slice().sort((a, b) => (b.mcap || 0) - (a.mcap || 0)).slice(0, 40).map((s) => [s.s, fmt.px(s.price), s.chgPct, "#/stock/" + s.s])];
       const one = () => items.map(([n, p, c, u]) => h("a", { href: u }, h("b", {}, n), h("span", {}, p), h("span", { class: fmt.cls(c) }, fmt.pct(c))));
       const track = h("div", { class: "ticker-track" }, one(), one());
       $("#ticker").append(track);

@@ -10,17 +10,17 @@
     valuation: ["price", "mcap", "pe", "eps", "high52", "low52"],
   };
   const COLS = {
-    price: { label: "Price", render: (s) => fmt.num(s.price, 2) },
+    price: { label: "Price", render: (s) => fmt.px(s.price) },
     chgPct: { label: "Today", render: (s) => UI.chgCell(s.chgPct) },
     vol: { label: "Volume", render: (s) => fmt.compact(s.vol, 1) },
     mcap: { label: "Market cap", render: (s) => fmt.rsc(s.mcap) },
     pe: { label: "P/E", render: (s) => (s.pe > 0 ? s.pe.toFixed(1) : "—"), sortVal: (s) => (s.pe > 0 ? s.pe : null), ascFirst: true, title: "Price ÷ earnings per share. Lower can mean cheaper." },
-    eps: { label: "EPS", render: (s) => fmt.num(s.eps, 2), title: "Earnings per share" },
+    eps: { label: "EPS", render: (s) => fmt.px(s.eps), title: "Earnings per share" },
     divYield: { label: "Div. yield", render: (s) => (s.divYield ? s.divYield.toFixed(2) + "%" : "—"), title: "Cash dividends paid in the last 12 months ÷ price" },
-    dps12m: { label: "Dividends (12m)", render: (s) => (s.dps12m ? "Rs " + s.dps12m.toFixed(2) : "—"), title: "Cash dividend per share, last 12 months" },
+    dps12m: { label: "Dividends (12m)", render: (s) => (s.dps12m ? fmt.pkr(s.dps12m) : "—"), title: "Cash dividend per share, last 12 months" },
     r1m: { label: "1M", render: (s) => ret(s.r1m) }, r6m: { label: "6M", render: (s) => ret(s.r6m) },
     r1y: { label: "1Y", render: (s) => ret(s.r1y) }, r3y: { label: "3Y", render: (s) => ret(s.r3y) }, r5y: { label: "5Y", render: (s) => ret(s.r5y) },
-    high52: { label: "52w high", render: (s) => fmt.num(s.high52, 2) }, low52: { label: "52w low", render: (s) => fmt.num(s.low52, 2) },
+    high52: { label: "52w high", render: (s) => fmt.px(s.high52) }, low52: { label: "52w low", render: (s) => fmt.px(s.low52) },
   };
   const ret = (v) => h("span", { class: fmt.cls(v) }, fmt.pct(v, 1));
 
