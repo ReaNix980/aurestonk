@@ -1,1 +1,1 @@
-{"updated":"2026-11-19T13:17:50+05:00","asOf":"2026-11-19","sample":false,"hourlySince":"2026-11-19","symbols":100,"lastRun":{"at":"2026-11-19T13:06+05:00","ok":true,"warnings":[]}}
+{"updated":"2026-11-20T00:36:49+05:00","asOf":"2026-11-19","sample":false,"hourlySince":"2026-11-19","symbols":100,"lastRun":{"at":"2026-11-20T00:29+05:00","ok":true,"warnings":["POST https://dps.psx.com.pk/historical -> HTTP 502"]}}
