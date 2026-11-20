@@ -1,1 +1,1 @@
-{"updated":"2026-11-20T00:36:49+05:00","asOf":"2026-11-19","sample":false,"hourlySince":"2026-11-19","symbols":100,"lastRun":{"at":"2026-11-20T00:29+05:00","ok":true,"warnings":["POST https://dps.psx.com.pk/historical -> HTTP 502"]}}
+{"updated":"2026-11-21T00:14:36+05:00","asOf":"2026-11-20","sample":false,"hourlySince":"2026-11-19","symbols":100,"lastRun":{"at":"2026-11-21T00:06+05:00","ok":true,"warnings":["GET https://api.worldbank.org/v2/country/PAK/indicator/FP.CPI.TOTL.ZG?format=json&per_page=80 -> ReadTimeout"]}}
